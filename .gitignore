@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Models (large binary files)
+*.onnx
+*.onnx.data
+*.pt
+
+# Pipeline outputs
+state.npz
+summary.json
+cluster_*/
+unclustered/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+venv/
+.venv/
