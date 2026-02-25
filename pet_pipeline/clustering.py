@@ -7,6 +7,90 @@ import numpy as np
 from .config import SpeciesConfig, logger
 
 
+def _cluster_hdbscan(distance, config):
+    """HDBSCAN on a precomputed distance matrix."""
+    import hdbscan
+    clusterer = hdbscan.HDBSCAN(
+        min_cluster_size=config.min_cluster_size,
+        min_samples=config.min_samples,
+        metric="precomputed",
+        cluster_selection_method="eom",
+    )
+    return clusterer.fit_predict(distance)
+
+
+def _cluster_agglomerative(distance, config):
+    """Agglomerative clustering on a precomputed distance matrix."""
+    from sklearn.cluster import AgglomerativeClustering
+    clust = AgglomerativeClustering(
+        metric="precomputed",
+        linkage="average",
+        distance_threshold=config.agglomerative_threshold,
+        n_clusters=None,
+    )
+    return clust.fit_predict(distance)
+
+
+def _cluster_chinese_whispers(distance, config):
+    """Chinese Whispers clustering (graph-based, pure numpy).
+
+    Builds a similarity graph, then iteratively assigns each node
+    the highest-weighted label among its neighbors.
+    """
+    similarity = np.clip(1.0 - distance, 0.0, 1.0)
+    n = len(similarity)
+    threshold = config.cw_threshold
+
+    # Build adjacency: edge exists if similarity > threshold (exclude self)
+    adj = (similarity > threshold)
+    np.fill_diagonal(adj, False)
+
+    # Initialize: each node gets its own label
+    labels = np.arange(n, dtype=np.int32)
+
+    # Check for isolated nodes (no edges above threshold)
+    has_neighbors = adj.any(axis=1)
+
+    for _iteration in range(20):
+        changed = False
+        order = np.random.permutation(n)
+        for node in order:
+            if not has_neighbors[node]:
+                continue
+            neighbors = np.where(adj[node])[0]
+            if len(neighbors) == 0:
+                continue
+            # Weighted vote: sum similarity per neighbor label
+            label_weights = {}
+            for nb in neighbors:
+                lbl = labels[nb]
+                label_weights[lbl] = label_weights.get(lbl, 0.0) + similarity[node, nb]
+            best_label = max(label_weights, key=label_weights.get)
+            if labels[node] != best_label:
+                labels[node] = best_label
+                changed = True
+        if not changed:
+            break
+
+    # Mark isolated nodes as -1 (unclustered)
+    labels[~has_neighbors] = -1
+    return labels
+
+
+def _run_cluster(distance, config):
+    """Dispatch to the configured clustering algorithm."""
+    algo = config.cluster_algorithm
+    logger.info(f"  Clustering algorithm: {algo}")
+    if algo == "hdbscan":
+        return _cluster_hdbscan(distance, config)
+    elif algo == "agglomerative":
+        return _cluster_agglomerative(distance, config)
+    elif algo == "chinese_whispers":
+        return _cluster_chinese_whispers(distance, config)
+    else:
+        raise ValueError(f"Unknown clustering algorithm: {algo!r}")
+
+
 class ClusterEngine:
     """3-phase fused clustering: face HDBSCAN -> body rescue -> cross-cluster merge."""
 
@@ -20,8 +104,6 @@ class ClusterEngine:
         Only images with faces participate. Others start as -1.
         Returns labels array of length N.
         """
-        import hdbscan
-
         n = len(face_embeddings)
         labels = np.full(n, -1, dtype=np.int32)
 
@@ -34,13 +116,7 @@ class ClusterEngine:
         sim = face_embs @ face_embs.T
         distance = np.clip(1.0 - sim, 0.0, 2.0).astype(np.float64)
 
-        clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=self.config.min_cluster_size,
-            min_samples=self.config.min_samples,
-            metric="precomputed",
-            cluster_selection_method="eom",
-        )
-        face_labels = clusterer.fit_predict(distance)
+        face_labels = _run_cluster(distance, self.config)
 
         # Map back to global indices
         for i, global_idx in enumerate(face_indices):
@@ -48,7 +124,7 @@ class ClusterEngine:
 
         n_clusters = len(set(face_labels) - {-1})
         n_noise = (face_labels == -1).sum()
-        logger.info(f"  HDBSCAN: {n_clusters} clusters, {n_noise} unclustered (from {len(face_indices)} face images)")
+        logger.info(f"  Face clustering: {n_clusters} clusters, {n_noise} unclustered (from {len(face_indices)} face images)")
         return labels
 
     def phase2_body_rescue(self, labels: np.ndarray, face_embeddings: np.ndarray,
@@ -143,8 +219,6 @@ class ClusterEngine:
         These clusters are lower confidence than face-based ones (body is less
         discriminative), but better than leaving them unclustered.
         """
-        import hdbscan
-
         updated_labels = labels.copy()
         body_cluster_log = []
 
@@ -155,20 +229,14 @@ class ClusterEngine:
             logger.info(f"  Body clustering: only {len(still_unclustered)} body-only unclustered images, need {self.config.min_cluster_size}. Skipping.")
             return updated_labels, body_cluster_log
 
-        logger.info(f"  Body clustering: running HDBSCAN on {len(still_unclustered)} unclustered body images...")
+        logger.info(f"  Body clustering: running on {len(still_unclustered)} unclustered body images...")
 
-        # HDBSCAN on body embeddings
+        # Cluster body embeddings
         body_embs = body_embeddings[still_unclustered]
         sim = body_embs @ body_embs.T
         distance = np.clip(1.0 - sim, 0.0, 2.0).astype(np.float64)
 
-        clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=self.config.min_cluster_size,
-            min_samples=self.config.min_samples,
-            metric="precomputed",
-            cluster_selection_method="eom",
-        )
-        body_labels = clusterer.fit_predict(distance)
+        body_labels = _run_cluster(distance, self.config)
 
         n_new_clusters = len(set(body_labels) - {-1})
         n_assigned = (body_labels != -1).sum()

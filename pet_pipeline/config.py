@@ -43,6 +43,9 @@ class SpeciesConfig:
     min_cluster_size: int = 2
     min_samples: int = 2
     min_body_overlap_ratio: float = 0.5
+    cluster_algorithm: str = "hdbscan"
+    agglomerative_threshold: float = 0.55
+    cw_threshold: float = 0.45
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
