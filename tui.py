@@ -137,18 +137,37 @@ def collect_args() -> dict:
             step = 4
             continue
 
-        # --- Step 4: Output directory ---
+        # --- Step 4: Clustering algorithm (batch only) ---
         if step == 4:
-            location = "on remote server" if args["target"] == "remote" else "local"
-            output_dir = _text_with_back(f"Output directory ({location}):")
-            if output_dir == BACK_SENTINEL:
-                step = 3; continue
-            args["output"] = output_dir
+            if args["mode"] == "batch":
+                algorithm = _select_with_back(
+                    "Clustering algorithm:",
+                    [
+                        {"name": "HDBSCAN (density-based, default)", "value": "hdbscan"},
+                        {"name": "Agglomerative (threshold-based, stable under removals)", "value": "agglomerative"},
+                        {"name": "Chinese Whispers (graph-based, stable under removals)", "value": "chinese_whispers"},
+                    ],
+                )
+                if algorithm == BACK_SENTINEL:
+                    step = 3; continue
+                args["algorithm"] = algorithm
+            else:
+                args["algorithm"] = None
             step = 5
             continue
 
-        # --- Step 5: GPU ---
+        # --- Step 5: Output directory ---
         if step == 5:
+            location = "on remote server" if args["target"] == "remote" else "local"
+            output_dir = _text_with_back(f"Output directory ({location}):")
+            if output_dir == BACK_SENTINEL:
+                step = 4; continue
+            args["output"] = output_dir
+            step = 6
+            continue
+
+        # --- Step 6: GPU ---
+        if step == 6:
             gpu = _select_with_back(
                 "Use GPU?",
                 [
@@ -157,13 +176,13 @@ def collect_args() -> dict:
                 ],
             )
             if gpu == BACK_SENTINEL:
-                step = 4; continue
+                step = 5; continue
             args["gpu"] = gpu
-            step = 6
+            step = 7
             continue
 
-        # --- Step 6: Verbose ---
-        if step == 6:
+        # --- Step 7: Verbose ---
+        if step == 7:
             verbose = _select_with_back(
                 "Verbose logging?",
                 [
@@ -172,7 +191,7 @@ def collect_args() -> dict:
                 ],
             )
             if verbose == BACK_SENTINEL:
-                step = 5; continue
+                step = 6; continue
             args["verbose"] = verbose
             break  # all done
 
@@ -203,6 +222,8 @@ def build_command(args: dict) -> str:
         parts.extend(["--output", args["output"]])
         if args["species"] != "auto":
             parts.extend(["--species", args["species"]])
+        if args.get("algorithm") and args["algorithm"] != "hdbscan":
+            parts.extend(["--algorithm", args["algorithm"]])
         if args["gpu"]:
             parts.append("--gpu")
     else:
