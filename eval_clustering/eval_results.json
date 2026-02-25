@@ -1,0 +1,186 @@
+{
+  "dataset": {
+    "input_dir": "/root/test_dogs",
+    "species": "dog",
+    "n_images": 39,
+    "n_true_identities": 10,
+    "n_faces_detected": 37,
+    "n_bodies_detected": 29,
+    "identity_sizes": {
+      "10298430": 3,
+      "13965327": 3,
+      "17273745": 3,
+      "17908942": 5,
+      "17970516": 3,
+      "18661758": 6,
+      "19003469": 6,
+      "19348536": 3,
+      "20080029": 4,
+      "20080044": 3
+    }
+  },
+  "per_algorithm": {
+    "hdbscan": {
+      "n_images": 39,
+      "n_predicted_clusters": 6,
+      "n_true_identities": 10,
+      "n_unclustered": 11,
+      "pct_clustered": 71.8,
+      "cluster_sizes": [
+        8,
+        3,
+        5,
+        3,
+        3,
+        6
+      ],
+      "cluster_size_mean": 4.7,
+      "cluster_size_median": 4.0,
+      "cluster_size_min": 3,
+      "cluster_size_max": 8,
+      "pairwise_precision": 0.629,
+      "pairwise_recall": 0.6094,
+      "pairwise_f1": 0.619,
+      "bcubed_precision": 0.8372,
+      "bcubed_recall": 0.7282,
+      "bcubed_f1": 0.7789,
+      "nmi": 0.8049,
+      "ari": 0.5336,
+      "purity": 0.8214,
+      "elapsed_seconds": 0.169,
+      "tp": 39,
+      "fp": 23,
+      "fn": 25,
+      "tn": 654,
+      "timing_std": 0.3328,
+      "rescue_count": 0,
+      "body_cluster_count": 0,
+      "merge_count": 0
+    },
+    "agglomerative": {
+      "n_images": 39,
+      "n_predicted_clusters": 15,
+      "n_true_identities": 10,
+      "n_unclustered": 2,
+      "pct_clustered": 94.9,
+      "cluster_sizes": [
+        2,
+        4,
+        6,
+        4,
+        3,
+        3,
+        3,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        3,
+        1
+      ],
+      "cluster_size_mean": 2.5,
+      "cluster_size_median": 2.0,
+      "cluster_size_min": 1,
+      "cluster_size_max": 6,
+      "pairwise_precision": 0.9286,
+      "pairwise_recall": 0.6094,
+      "pairwise_f1": 0.7358,
+      "bcubed_precision": 0.9615,
+      "bcubed_recall": 0.7325,
+      "bcubed_f1": 0.8315,
+      "nmi": 0.8867,
+      "ari": 0.7088,
+      "purity": 0.973,
+      "elapsed_seconds": 0.003,
+      "tp": 39,
+      "fp": 3,
+      "fn": 25,
+      "tn": 674,
+      "timing_std": 0.0028,
+      "rescue_count": 0,
+      "body_cluster_count": 0,
+      "merge_count": 0
+    },
+    "chinese_whispers": {
+      "n_images": 39,
+      "n_predicted_clusters": 9,
+      "n_true_identities": 10,
+      "n_unclustered": 15,
+      "pct_clustered": 61.5,
+      "cluster_sizes": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        4,
+        2,
+        3,
+        3
+      ],
+      "cluster_size_mean": 2.7,
+      "cluster_size_median": 3.0,
+      "cluster_size_min": 2,
+      "cluster_size_max": 4,
+      "pairwise_precision": 0.9091,
+      "pairwise_recall": 0.3125,
+      "pairwise_f1": 0.4651,
+      "bcubed_precision": 0.9658,
+      "bcubed_recall": 0.5051,
+      "bcubed_f1": 0.6633,
+      "nmi": 0.7339,
+      "ari": 0.3316,
+      "purity": 0.9583,
+      "elapsed_seconds": 0.002,
+      "tp": 20,
+      "fp": 2,
+      "fn": 44,
+      "tn": 675,
+      "timing_std": 0.0,
+      "rescue_count": 0,
+      "body_cluster_count": 2,
+      "merge_count": 1
+    }
+  },
+  "pairwise_comparisons": [
+    {
+      "algorithms": [
+        "hdbscan",
+        "agglomerative"
+      ],
+      "nmi": 0.8046,
+      "ari": 0.4809,
+      "pairwise_agreement": 0.9649
+    },
+    {
+      "algorithms": [
+        "hdbscan",
+        "chinese_whispers"
+      ],
+      "nmi": 0.7185,
+      "ari": 0.4605,
+      "pairwise_agreement": 0.9433
+    },
+    {
+      "algorithms": [
+        "agglomerative",
+        "chinese_whispers"
+      ],
+      "nmi": 0.7304,
+      "ari": 0.2271,
+      "pairwise_agreement": 0.973
+    }
+  ],
+  "chinese_whispers_stability": {
+    "n_runs": 5,
+    "run_agreements": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "mean_stability": 1.0
+  }
+}
