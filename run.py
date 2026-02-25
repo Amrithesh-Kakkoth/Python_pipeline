@@ -35,6 +35,10 @@ def build_config(args) -> SpeciesConfig:
     if hasattr(args, 'body_detect_model') and args.body_detect_model:
         config.body_detect_model = args.body_detect_model
 
+    # Override clustering algorithm if provided
+    if hasattr(args, 'algorithm') and args.algorithm:
+        config.cluster_algorithm = args.algorithm
+
     return config
 
 
@@ -81,6 +85,10 @@ def main():
     batch_p.add_argument("--face-embed-model", default=None, help="Custom face embedding model")
     batch_p.add_argument("--body-embed-model", default=None, help="Custom body embedding model")
     batch_p.add_argument("--body-detect-model", default=None, help="Custom body detection model")
+    batch_p.add_argument("--algorithm", "-a",
+                         choices=["hdbscan", "agglomerative", "chinese_whispers"],
+                         default="hdbscan",
+                         help="Clustering algorithm (default: hdbscan)")
 
     # Incremental subcommand
     add_p = sub.add_parser("add", help="Add new photos to existing clusters")
